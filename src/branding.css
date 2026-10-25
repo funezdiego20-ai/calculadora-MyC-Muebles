@@ -1,0 +1,24 @@
+.brand {
+  min-height: 54px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  color: #161616;
+  background-color: #f2c542;
+  background-image: linear-gradient(rgba(153, 110, 8, .24) 1px, transparent 1px), linear-gradient(90deg, rgba(153, 110, 8, .24) 1px, transparent 1px);
+  background-size: 10px 10px;
+}
+.brand-mark {
+  width: 39px;
+  height: 39px;
+  border-radius: 5px;
+  background-color: #ffdc62;
+  background-image: linear-gradient(rgba(153, 110, 8, .27) 1px, transparent 1px), linear-gradient(90deg, rgba(153, 110, 8, .27) 1px, transparent 1px);
+  background-size: 8px 8px;
+  color: #111;
+  font-family: Manrope, sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: -.8px;
+}
+.brand > span:last-child { color: #111; font-size: 13px; letter-spacing: -.25px; }
+.brand small { color: #3f351c; font-size: 7px; letter-spacing: 1.25px; }

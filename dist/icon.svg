@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M10 0H0V10" fill="none" stroke="#bd8e17" stroke-width=".8" opacity=".5"/></pattern></defs>
+  <rect width="64" height="64" rx="15" fill="#f2c542"/>
+  <rect width="64" height="64" rx="15" fill="url(#grid)"/>
+  <text x="32" y="39" text-anchor="middle" font-family="Arial,sans-serif" font-size="23" font-weight="800" letter-spacing="-1.5" fill="#111">MyC</text>
+</svg>
