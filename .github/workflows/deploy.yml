@@ -1,0 +1,54 @@
+YAML
+
+name:Publicar calculadora
+
+on:
+  push:
+    branches:  [master]
+
+    permissions:
+      contents: read}
+      pages: write
+      id-token: write
+
+      jobs:
+        build:
+          runs-on: ubuntu-latest
+          steps:
+            - name: Descargar proyecto
+              uses: actions/checkout@v4
+
+            - name: Preparar Node
+              uses: actions/setup-node@v4
+              with:
+                node-version: 22
+
+              name: Instal dependencias
+              run: npm install
+
+            - name: Crear calculadora
+              run: npm run build
+
+            - name:  Preparar publicacion
+              uses:
+ actions/upload-pages-artifact@v3   
+              with:
+                path:  ./dist
+
+  deploy:
+    environment:
+      name:  github-pages
+      url: $
+ {{ steps.deployment.outputs.page_url
+ }}
+    runs-on: ubuntu-latest
+    needs:  build
+    steps:
+      - name: Publicar
+        id: deployment
+        uses:
+ actions/deploy-pages@v4       
+      
+              
+              
+                
