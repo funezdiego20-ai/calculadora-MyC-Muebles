@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ArrowDownToLine, ArrowRight, BadgeCheck, Box, Check, ChevronDown, CircleHelp, FileSpreadsheet, ImagePlus, Layers3, MessageCircle, Plus, Ruler, Sparkles, Trash2, Upload, WalletCards } from 'lucide-react';
 import { calculateQuote, starterParts, suggestCabinetParts } from './lib/cutlist.js';
 import { importPriceFile } from './lib/pricing.js';
-import { analyzeFurnitureImage } from './lib/vision.js';
+import { analyzeFurnitureImage, imageAsDataUrl } from './lib/vision.js';
 import { loadAppState, requestPersistentStorage, saveAppState } from './lib/storage.js';
 import { priceCatalog } from './lib/catalog.js';
 import { buildDescriptionCutlist } from './lib/furnitureDescription.js';
@@ -54,7 +54,27 @@ export default function App(){
   const importFurnitureFolder=event=>{const files=[...(event.target.files||[])].filter(file=>file.type.startsWith('image/'));if(!files.length){setNotice('No se encontraron fotos en la carpeta seleccionada.');return}setGalleryFiles(files);setNotice(`${files.length} fotos importadas y guardadas solo en esta computadora.`);event.target.value=''};
   const chooseGalleryPhoto=(file,url)=>{setImage(file);setImageUrl(url);setNotice(`Foto seleccionada: ${file.name}`)};
   const clearFurnitureFolder=()=>{setGalleryFiles([]);if(image?.webkitRelativePath){setImage(null);setImageUrl('')}setNotice('Se quitó la carpeta importada de esta computadora.')};
-  const analyze=async()=>{if(!image){setNotice('Elegí una imagen o un croquis primero.');return}setBusy(true);setNotice('');try{const base64=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(image)});const result=await analyzeFurnitureImage({image:base64,dimensions:{width:Number(width),height:Number(height),depth:Number(depth),unit:'cm'},material:primaryMaterial});const backMaterial=materials.find(item=>item.name==='Fondo Fibro Facil 3mm')?.name||materials[0]?.name;const predicted=result.parts.map((part,index)=>({...part,id:`ai-${index}`,material:part.material==='BACK'?backMaterial:primaryMaterial,edgeMaterial:edgeMaterials[0]?.name||''}));if(!predicted.length)throw new Error('La IA no devolvió piezas.');setParts(predicted);setStep('review');setNotice((result.observations||[]).join(' · ')||'Propuesta de IA lista para validar.')}catch(error){setNotice(error.message.includes('Failed to fetch')?'El servicio /api/analyze no está configurado. Podés usar “Generar despiece estándar” o configurar el endpoint de visión.':error.message)}finally{setBusy(false)}};
+  const analyze=async()=>{
+    if(!image){setNotice('Elegí una imagen o un croquis primero.');return}
+    setBusy(true);setNotice('Preparando la foto…');
+    try {
+      const base64=await imageAsDataUrl(image);
+      const result=await analyzeFurnitureImage({image:base64,dimensions:{width:Number(width),height:Number(height),depth:Number(depth),unit:'cm'},material:primaryMaterial});
+      const backMaterial=materials.find(item=>item.name==='Fondo Fibro Facil 3mm')?.name||materials[0]?.name;
+      const predicted=result.parts.map((part,index)=>({...part,id:`ai-${crypto.randomUUID?.()||index}`,material:part.material==='BACK'?backMaterial:primaryMaterial,edgeMaterial:edgeMaterials[0]?.name||''}));
+      if(!predicted.length)throw new Error('La IA no encontró piezas. Probá describir el mueble y generá el despiece desde la descripción.');
+      setParts(predicted);setStep('review');setNotice(`Propuesta generada con IA. ${result.observations?.join(' · ')||'Revisá medidas y ensambles antes de aprobar.'}`);
+    } catch(error) {
+      try {
+        const result=buildDescriptionCutlist({width,height,depth,shelves,primaryMaterial,selectedMaterials,prices,edgeMaterial:edgeMaterials[0]?.name,furnitureName:furnitureName||'Mueble tipo caja',furnitureDetails:furnitureDetails||'Mueble tipo caja basado en la foto seleccionada'});
+        setParts(result.parts);if(result.pricesToAdd.length)setPrices(list=>mergePriceCatalog([...list,...result.pricesToAdd]));setStep('review');
+        setNotice(`No se pudo interpretar automáticamente la foto (${error.message}). Dejé una propuesta editable basada en tus medidas y descripción; la imagen no fue analizada por IA. Revisá cada pieza antes de cotizar. ${result.observations.join(' ')}`);
+      } catch(fallbackError) {
+        try { generate(); setNotice(`No se pudo interpretar automáticamente la foto (${error.message}). Generé un despiece estándar editable con tus medidas. La foto no fue analizada por IA; revisá y corregí las piezas. ${fallbackError.message||''}`); }
+        catch { setNotice(`No se pudo analizar la foto: ${error.message}. ${fallbackError.message}`); }
+      }
+    } finally {setBusy(false)}
+  };
   const approve=()=>{const result=calculateQuote(parts,prices,markup);setQuote(result);setStep('quote')};
   const sendWhatsApp=()=>{const rows=quote.lines.map(line=>line.materialType==='herrajes'?`• ${line.name}: ${line.qty} × ${line.material}`:`• ${line.name}: ${line.qty} u. de ${line.width} × ${line.height} cm · ${line.material} · filo ${line.edgeMaterial}`).join('\n');const description=[furnitureName&&`Mueble: ${furnitureName}`,furnitureDetails&&`Incluye: ${furnitureDetails}`].filter(Boolean).join('\n');const msg=`*Cotización de amoblamiento*${description?`\n${description}`:''}\n\nLista de corte:\n${rows}\n\nCosto base: ${fmt(quote.base)}\nMargen (${markup}%): ${fmt(quote.markup)}\n*Total: ${fmt(quote.total)}*`;const phone=whatsapp.replace(/\D/g,'');window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`,'_blank','noopener,noreferrer')};
   const nav=[['design','Proyecto',Ruler],['review','Despiece',Layers3],['quote','Cotización',WalletCards]];

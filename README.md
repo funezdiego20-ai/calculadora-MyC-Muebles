@@ -32,7 +32,7 @@ public/
 
 Publicá el contenido de `dist/` en un hosting estático con HTTPS y fallback SPA a `index.html`. Abrí la URL pública desde Chrome para Android, tocá el menú y elegí **Instalar aplicación** o **Agregar a pantalla principal**. El service worker y la instalación requieren HTTPS, salvo localhost. Tras visitar la aplicación online una vez, el service worker guarda la interfaz y sus archivos compilados para abrirla sin conexión.
 
-La persistencia local no equivale a una copia de seguridad: si se borran los datos del sitio o se cambia de navegador/teléfono, no hay recuperación ni sincronización. Para compartir precios y proyectos entre PC y celular haría falta una API con autenticación y una base de datos. No hay contraseñas ni claves API en el cliente. El análisis visual seguirá necesitando que se publique el endpoint seguro `POST /api/analyze`; este proyecto no incluye ese servidor.
+La persistencia local no equivale a una copia de seguridad: si se borran los datos del sitio o se cambia de navegador/teléfono, no hay recuperación ni sincronización. Para compartir precios y proyectos entre PC y celular haría falta una API con autenticación y una base de datos. No hay contraseñas ni claves API en el cliente. El análisis visual usa el endpoint seguro `api/analyze.js` y requiere configurar `OPENAI_API_KEY` como variable privada de entorno en Vercel. Si el endpoint o el servicio de IA no están disponibles, la app crea una propuesta editable por medidas y descripción, e informa que la foto no fue analizada automáticamente.
 
 ## Lista de precios
 
@@ -48,6 +48,6 @@ La placa se valúa por m²; el tapacanto por metro lineal. El costo de herrajes 
 
 ## IA de visión
 
-`src/lib/vision.js` incluye el prompt de salida estructurada y el cliente que envía imagen y medidas a `POST /api/analyze`. Implementá ese endpoint en un servidor propio y conectalo al proveedor/modelo de visión que elijas. Mantené las credenciales en el servidor; no las incluyas en el bundle de Vite. La respuesta esperada es `{ "observations": [], "parts": [] }`. Si el endpoint no está disponible, el generador estándar crea un mueble tipo caja como punto de partida.
+`src/lib/vision.js` prepara la imagen y envía imagen y medidas a `POST /api/analyze`. El endpoint `api/analyze.js` llama al servicio de visión desde el servidor, limita tamaño y frecuencia y valida las piezas antes de responder. En Vercel, abrí **Settings → Environment Variables**, agregá `OPENAI_API_KEY` para Production (y Preview si corresponde), guardá y volvé a desplegar. La clave se obtiene en la plataforma del proveedor; nunca la pegues en archivos del proyecto ni en el navegador. Opcionalmente configurá `OPENAI_VISION_MODEL` para elegir otro modelo compatible con imágenes y salida JSON estructurada. La respuesta esperada es `{ "observations": [], "parts": [] }`.
 
 El cálculo estándar asume laterales a altura completa, techo y piso entre laterales (ancho menos dos espesores) y estantes a ancho interior. Fondos, frentes, uniones y holguras dependen del diseño real: confirmalos en la tabla antes de aprobar. La IA produce sugerencias; nunca se costea sin aprobación humana.
