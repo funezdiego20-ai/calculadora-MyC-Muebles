@@ -46,7 +46,7 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: {Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json'},
       body: JSON.stringify({
-        model: process.env.OPENAI_VISION_MODEL || 'gpt-4.1-mini', store: false,
+        model: process.env.OPENAI_VISION_MODEL || 'gpt-6.1-terra', store: false,
         input: [
           {role: 'developer', content: [{type: 'input_text', text: PROMPT}]},
           {role: 'user', content: [
@@ -56,10 +56,17 @@ export default async function handler(req, res) {
         ],
         text: {format: {type: 'json_schema', name: 'furniture_cutlist', strict: true, schema}},
       }),
+      signal: AbortSignal.timeout(48_000),
     });
     if (!upstream.ok) {
+      const providerError = await upstream.json().catch(() => ({}));
+      const providerCode = providerError?.error?.code;
       if (upstream.status === 401) return res.status(502).json({code: 'AI_AUTH_ERROR', error: 'La clave de IA configurada en Vercel no es válida.'});
-      if (upstream.status === 429) return res.status(503).json({code: 'AI_BUSY', error: 'El servicio de IA alcanzó su límite o cuota. Revisá la cuenta de IA e intentá luego.'});
+      if (upstream.status === 403) return res.status(502).json({code: 'AI_ACCESS_ERROR', error: 'La cuenta o la clave no tiene acceso al modelo de análisis.'});
+      if (upstream.status === 402 || providerCode === 'insufficient_quota' || providerCode === 'billing_not_active') return res.status(503).json({code: 'AI_BILLING_REQUIRED', error: 'La cuenta de API no tiene crédito disponible o facturación activa. Activá la facturación/créditos de API y volvé a intentar.'});
+      if (upstream.status === 429) return res.status(503).json({code: 'AI_RATE_LIMIT', error: 'La cuenta alcanzó el límite de solicitudes de IA. Esperá un momento e intentá de nuevo.'});
+      if (upstream.status === 404) return res.status(502).json({code: 'AI_MODEL_ERROR', error: 'El modelo de análisis no está disponible para esta cuenta.'});
+      if (upstream.status === 400) return res.status(502).json({code: 'AI_REQUEST_ERROR', error: 'OpenAI rechazó el formato de análisis. Probá nuevamente más tarde.'});
       return res.status(502).json({code: 'AI_PROVIDER_ERROR', error: 'El servicio de análisis no respondió correctamente. Intentá nuevamente.'});
     }
     const payload = await upstream.json();
@@ -71,7 +78,8 @@ export default async function handler(req, res) {
       if (![part.width, part.height, part.qty, part.edge, part.edgeSides, part.confidence].every(Number.isFinite) || part.width < 0 || part.height < 0 || part.qty < 1 || part.qty > 500 || part.width > 1000 || part.height > 1000) throw new Error('invalid dimensions');
     }
     return res.status(200).json(result);
-  } catch {
+  } catch (error) {
+    if (error?.name === 'TimeoutError' || error?.name === 'AbortError') return res.status(504).json({code: 'AI_TIMEOUT', error: 'El análisis tardó demasiado. Probá con una foto más liviana o intentá de nuevo.'});
     return res.status(502).json({code: 'AI_RESPONSE_ERROR', error: 'No se pudo interpretar la respuesta del análisis. Probá otra foto más clara.'});
   }
 }

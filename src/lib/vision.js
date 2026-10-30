@@ -27,11 +27,22 @@ export async function imageAsDataUrl(file) {
 }
 
 export async function analyzeFurnitureImage({image, dimensions, material, endpoint='/api/analyze'}) {
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({image, dimensions, material}),
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 55_000);
+  let response;
+  try {
+    response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({image, dimensions, material}),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error?.name === 'AbortError') throw new Error('El análisis tardó demasiado. Probá con una foto más liviana o intentá de nuevo.');
+    throw new Error('No se pudo conectar con el servicio de análisis. Revisá la conexión a Internet e intentá de nuevo.');
+  } finally {
+    clearTimeout(timer);
+  }
   const result = await response.json().catch(() => ({}));
   if (!response.ok) {
     const error = new Error(result.error || 'No se pudo analizar la foto.');
