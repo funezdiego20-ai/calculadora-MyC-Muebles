@@ -186,6 +186,12 @@ export const priceCatalog = [
     "thickness": 3
   },
   {
+    "name": "Fondo color blanco 3 mm",
+    "type": "placa",
+    "price": 0,
+    "thickness": 3
+  },
+  {
     "name": "Fibro Facil Cruso 9mm",
     "type": "placa",
     "price": 8700,
