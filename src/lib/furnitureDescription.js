@@ -116,7 +116,7 @@ export function buildDescriptionCutlist({ width, height, depth, shelves = 3, pri
       { id:'description-drawer-back', name:'Trasera de cajón', width:backWidth, height:sideHeight, qty:drawerCount, material:chooseMaterial('Trasera cajón', clauses, selectedBoards, primary), edge:0, edgeSides:0, edgeMaterial:edgeMaterial||'' },
       { id:'description-drawer-bottom', name:'Fondo de cajón', width:backWidth, height:drawerDepth, qty:drawerCount, material:chooseMaterial('Fondo cajón', clauses, selectedBoards, drawerBottomMaterial), edge:0, edgeSides:0, edgeMaterial:edgeMaterial||'' },
     );
-    observations.push(`Se agregaron las piezas para ${drawerCount} cajón${drawerCount===1?'':'es'}.`);
+    observations.push(`Se agregaron las piezas para ${drawerCount} ${drawerCount===1?'cajón':'cajones'}.`);
   }
   if (doorCount) {
     rows.push({ id:'description-door', name:'Puerta', width:innerWidth/doorCount, height:Math.max(1,h-2), qty:doorCount, material:chooseMaterial('Puerta', clauses, selectedBoards, primary), edge:Math.max(1,h-2), edgeSides:1, edgeMaterial:edgeMaterial||'' });
