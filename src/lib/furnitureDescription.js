@@ -8,7 +8,7 @@ const countOf = (text, noun) => {
   const token = normalize(match[1]);
   return Math.max(0, Number.isFinite(Number(token)) ? Number(token) : (numberWords[token] ?? 1));
 };
-const hasNegative = (text, noun) => new RegExp(`\\b(?:sin|no lleva|no tiene|sin incluir)\\b[^.!;]{0,24}\\b(?:${noun})\\b`, 'i').test(text);
+const hasNegative = (text, noun) => new RegExp(`\\b(?:sin incluir|sin|no lleva|no tiene)\\s+(?:(?:el|la|los|las|ningun|ninguna)\\s+)?(?:${noun})\\b`, 'i').test(text);
 
 function materialHints(item) {
   const name = normalize(item.name);
