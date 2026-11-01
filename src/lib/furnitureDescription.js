@@ -1,9 +1,12 @@
 import { suggestCabinetParts } from './cutlist.js';
 
 const normalize = value => String(value || '').toLocaleLowerCase('es').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const numberWords = {un:1, uno:1, una:1, dos:2, tres:3, cuatro:4, cinco:5, seis:6, siete:7, ocho:8, nueve:9, diez:10, once:11, doce:12};
 const countOf = (text, noun) => {
-  const match = text.match(new RegExp(`\\b(\\d+)\\s+(?:${noun})\\b`, 'i'));
-  return match ? Math.max(0, Number(match[1])) : null;
+  const match = text.match(new RegExp(`\\b(\\d+|un(?:o|a)?|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)\\s+(?:${noun})\\b`, 'i'));
+  if (!match) return null;
+  const token = normalize(match[1]);
+  return Math.max(0, Number.isFinite(Number(token)) ? Number(token) : (numberWords[token] ?? 1));
 };
 const hasNegative = (text, noun) => new RegExp(`\\b(?:sin|no lleva|no tiene|sin incluir)\\b[^.!;]{0,24}\\b(?:${noun})\\b`, 'i').test(text);
 
@@ -59,7 +62,7 @@ function chooseMaterial(partName, clauses, selectedBoards, fallbackMaterial) {
   });
   if (matches.length) {
     const hasColor = /wengue|venecia|nebraska|helsinki|blanc[oa]|negr[oa]|natural|gris|color/.test(text);
-    if (hasColor) return matches.find(material => materialHints(material).some(hint => hint !== 'melamina' && text.includes(hint)))?.name || matches[0].name;
+    if (hasColor) return matches.find(material => material.name === fallbackMaterial)?.name || matches.find(material => materialHints(material).some(hint => hint !== 'melamina' && text.includes(hint)))?.name || matches[0].name;
     return matches.find(material => material.name === fallbackMaterial)?.name || matches[0].name;
   }
   return fallbackMaterial;
@@ -79,7 +82,7 @@ export function buildDescriptionCutlist({ width, height, depth, shelves = 3, pri
   if (!selectedBoards.length) throw new Error('Tildá al menos un material para este mueble.');
   const primary = selectedBoards.some(item => item.name === primaryMaterial) ? primaryMaterial : selectedBoards[0].name;
   const text = normalize(`${furnitureName} ${furnitureDetails}`);
-  const clauses = text.split(/[\n,;.!]+/).map(value => value.trim()).filter(Boolean);
+  const clauses = text.split(/[\n,;.!]+/).flatMap(value => value.trim().split(/\s+y\s+(?=(?:(?:el|la|los|las)\s+)?(?:laterales?|costados?|techos?|pisos?|bases?|estantes?|baldas?|entrepanos?|divisores?|divisiones?|puertas?|frentes?|fondos?|traseras?|zocalos?|cajones?))/)).map(value => value.trim()).filter(Boolean);
   const drawerMentioned = /cajon|cajonero/.test(text) && !hasNegative(text, 'cajon(?:es)?');
   const doorMentioned = /puerta/.test(text) && !hasNegative(text, 'puerta(?:s)?');
   const statedDrawerCount = countOf(text, 'cajon(?:es)?');
